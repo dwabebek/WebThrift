@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  </head>
+  <body class="bg-slate-50 p-6">
+    <div class="max-w-6xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h1 class="text-2xl font-black text-slate-800">Gudang & Inventori</h1>
+          <p class="text-sm text-slate-500">Kelola stok pakaian thrift.</p>
+        </div>
+        <div class="flex gap-2">
+          <a href="/add-product.html" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Tambah Produk</a>
+          <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">Logout</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse whitespace-nowrap">
+          <thead>
+            <tr class="bg-slate-100 text-slate-700 border-b border-slate-200 text-sm">
+              <th class="p-3">Nama Pakaian</th>
+              <th class="p-3">Kategori</th>
+              <th class="p-3">Harga</th>
+              <th class="p-3">Status</th>
+              <th class="p-3">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <script>
+      async function checkAuthAndLoad() {
+        const sessionRes = await fetch("/api/session-check");
+        const sessionData = await sessionRes.json();
+        if (!sessionData.loggedIn) {
+          window.location.href = "/login.html";
+          return;
+        }
+
+        const res = await fetch("/api/products");
+        if (res.status === 401) {
+          window.location.href = "/login.html";
+          return;
+        }
+        const products = await res.json();
+        const tbody = document.getElementById("adminTableBody");
+        tbody.innerHTML = "";
+        products.forEach((p) => {
+          tbody.innerHTML += `
+                    <tr class="border-b border-slate-200 text-sm hover:bg-slate-50">
+                        <td class="p-3 font-semibold text-slate-800">${p.name}</td>
+                        <td class="p-3 uppercase text-xs font-bold text-slate-500">${p.category}</td>
+                        <td class="p-3">Rp ${p.price.toLocaleString("id-ID")}</td>
+                        <td class="p-3"><span class="px-2 py-1 rounded-md text-xs font-bold ${p.status === "available" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}">${p.status.toUpperCase()}</span></td>
+                        <td class="p-3 flex gap-3">
+                            <button onclick="editPage(${p.id})" class="text-blue-600 hover:underline font-medium">Edit</button>
+                            <button onclick="deleteProduct(${p.id})" class="text-red-600 hover:underline font-medium">Hapus</button>
+                        </td>
+                    </tr>`;
+        });
+      }
+      function editPage(id) {
+        localStorage.setItem("editProductId", id);
+        window.location.href = "/edit-product.html";
+      }
+      async function deleteProduct(id) {
+        if (confirm("Yakin hapus dari inventori secara permanen?")) {
+          await fetch(`/api/products/${id}`, { method: "DELETE" });
+          checkAuthAndLoad();
+        }
+      }
+      async function logout() {
+        await fetch("/api/logout", { method: "POST" });
+        window.location.href = "/login.html";
+      }
+      checkAuthAndLoad();
+    </script>
+  </body>
+</html>

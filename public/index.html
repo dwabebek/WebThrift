@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thrift Store Katalog</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  </head>
+  <body class="bg-slate-50 font-sans">
+    <nav class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50">
+      <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+        <a href="/" class="text-xl font-black text-slate-800">THRIFT.<span class="text-indigo-600">LAB</span></a>
+        <a href="/login.html" class="text-sm font-medium text-slate-600 hover:text-indigo-600">Dashboard Admin &rarr;</a>
+      </div>
+    </nav>
+
+    <header class="max-w-6xl mx-auto px-4 my-8">
+      <div class="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-8 md:p-12 text-white shadow-md flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl md:text-5xl font-extrabold mb-2">Sustainable Style.</h1>
+          <p class="text-slate-300 max-w-md">Koleksi thrift pilihan dengan stok eksklusif (1 barang 1 ukuran).</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 mb-16">
+      <div class="flex justify-between items-end mb-6">
+        <h2 class="text-2xl font-bold text-slate-800">Katalog Produk</h2>
+      </div>
+
+      <div class="flex gap-2 overflow-x-auto pb-4 mb-4" id="categoryFilters">
+        <button onclick="loadCatalog('all')" class="filter-btn active px-5 py-2 bg-indigo-600 text-white rounded-full text-sm font-semibold whitespace-nowrap transition">Semua</button>
+        <button onclick="loadCatalog('baju')" class="filter-btn px-5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-full text-sm font-semibold whitespace-nowrap transition">Baju</button>
+        <button onclick="loadCatalog('celana')" class="filter-btn px-5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-full text-sm font-semibold whitespace-nowrap transition">Celana</button>
+        <button onclick="loadCatalog('sepatu')" class="filter-btn px-5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-full text-sm font-semibold whitespace-nowrap transition">Sepatu</button>
+        <button onclick="loadCatalog('tas')" class="filter-btn px-5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-full text-sm font-semibold whitespace-nowrap transition">Tas</button>
+        <button onclick="loadCatalog('topi')" class="filter-btn px-5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-full text-sm font-semibold whitespace-nowrap transition">Topi</button>
+        <button onclick="loadCatalog('jaket')" class="filter-btn px-5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-full text-sm font-semibold whitespace-nowrap transition">Jaket</button>
+      </div>
+
+      <div id="catalogGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+    </main>
+
+    <script>
+      async function loadCatalog(category = "all") {
+        // Update styling tombol filter yang aktif
+        document.querySelectorAll(".filter-btn").forEach((btn) => {
+          btn.className = "filter-btn px-5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-full text-sm font-semibold whitespace-nowrap transition";
+        });
+        event.currentTarget.className = "filter-btn active px-5 py-2 bg-indigo-600 text-white border border-indigo-600 rounded-full text-sm font-semibold whitespace-nowrap transition";
+
+        const res = await fetch(`/api/products/available?category=${category}`);
+        const products = await res.json();
+        const grid = document.getElementById("catalogGrid");
+
+        if (products.length === 0) {
+          grid.innerHTML = '<div class="col-span-full text-center py-12 bg-white rounded-xl border border-dashed border-slate-300 text-slate-500">Tidak ada produk di kategori ini.</div>';
+          return;
+        }
+
+        grid.innerHTML = "";
+        products.forEach((p) => {
+          grid.innerHTML += `
+                    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                        <div>
+                            <div class="relative h-64 bg-slate-100">
+                                <img src="${p.image_url}" class="w-full h-full object-cover">
+                                <span class="absolute top-3 left-3 bg-white text-slate-800 text-xs font-bold px-2.5 py-1 rounded-md shadow-sm uppercase">${p.category}</span>
+                                <span class="absolute top-3 right-3 bg-slate-900/80 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-md">Size: ${p.size}</span>
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-bold text-slate-800 text-lg line-clamp-1">${p.name}</h3>
+                                <p class="text-xs font-medium text-emerald-600 mt-1">${p.condition}</p>
+                                <p class="text-xl font-black text-slate-900 mt-2">Rp ${p.price.toLocaleString("id-ID")}</p>
+                            </div>
+                        </div>
+                        <div class="p-4 pt-0">
+                            <a href="/checkout.html?id=${p.id}" class="block w-full bg-slate-900 hover:bg-indigo-600 text-white text-center py-2.5 rounded-lg text-sm font-bold transition">Beli Sekarang</a>
+                        </div>
+                    </div>`;
+        });
+      }
+      // Load semua produk saat pertama kali dibuka
+      window.onload = () => loadCatalog("all");
+    </script>
+  </body>
+</html>
