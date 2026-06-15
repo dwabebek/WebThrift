@@ -3,85 +3,190 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thrift Store Katalog</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>Thrift Lab - Sustainable Fashion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Sembunyikan scrollbar tapi tetap bisa di-scroll untuk filter */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+    </style>
   </head>
-  <body class="bg-slate-50 font-sans">
-    <nav class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50">
-      <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-        <a href="/" class="text-xl font-black text-slate-800">THRIFT.<span class="text-indigo-600">LAB</span></a>
-        <a href="/login.html" class="text-sm font-medium text-slate-600 hover:text-indigo-600">Dashboard Admin &rarr;</a>
+  <body class="bg-zinc-950 text-zinc-100 font-sans antialiased min-h-screen flex flex-col">
+    <nav class="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
+      <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+        <a href="/" class="text-2xl font-black tracking-tighter text-emerald-500 italic">THRIFT.LAB</a>
+        <div id="navMenu" class="flex items-center gap-6 text-sm font-bold">
+          <a href="/cart.html" class="text-zinc-400 hover:text-emerald-500 transition flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+              ></path>
+            </svg>
+            <span id="navCartCount" class="bg-emerald-500 text-zinc-950 px-2 py-0.5 rounded-full text-xs">0</span>
+          </a>
+          <a href="/login.html" class="text-zinc-400 hover:text-emerald-500 transition">LOGIN</a>
+          <a href="/register.html" class="bg-emerald-500 text-zinc-950 px-4 py-2 rounded-full hover:bg-emerald-400 transition">REGISTER</a>
+        </div>
       </div>
     </nav>
 
-    <header class="max-w-6xl mx-auto px-4 my-8">
-      <div class="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-8 md:p-12 text-white shadow-md flex justify-between items-center">
-        <div>
-          <h1 class="text-3xl md:text-5xl font-extrabold mb-2">Sustainable Style.</h1>
-          <p class="text-slate-300 max-w-md">Koleksi thrift pilihan dengan stok eksklusif (1 barang 1 ukuran).</p>
-        </div>
-      </div>
+    <header class="max-w-7xl mx-auto px-6 py-12 md:py-20 text-center">
+      <h1 class="text-4xl md:text-6xl font-black mb-4">RECYCLE. <span class="text-emerald-500">REWEAR.</span></h1>
+      <p class="text-zinc-400 max-w-2xl mx-auto">Temukan koleksi pakaian thrift dan upcycled fashion pilihan. Stok eksklusif, hanya 1 barang per model.</p>
     </header>
 
-    <main class="max-w-6xl mx-auto px-4 mb-16">
-      <div class="flex justify-between items-end mb-6">
-        <h2 class="text-2xl font-bold text-slate-800">Katalog Produk</h2>
-      </div>
+    <section class="max-w-7xl mx-auto px-6 mb-10">
+      <div class="flex flex-col md:flex-row gap-4 items-center justify-between bg-zinc-900 p-4 rounded-2xl border border-zinc-800">
+        <div class="flex gap-2 overflow-x-auto no-scrollbar w-full md:w-auto pb-2 md:pb-0" id="categoryFilters">
+          <button onclick="filterCategory('all')" class="filter-btn active bg-emerald-500 text-zinc-950 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition">Semua</button>
+          <button onclick="filterCategory('baju')" class="filter-btn bg-zinc-800 text-zinc-300 hover:text-emerald-500 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition">Baju</button>
+          <button onclick="filterCategory('celana')" class="filter-btn bg-zinc-800 text-zinc-300 hover:text-emerald-500 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition">Celana</button>
+          <button onclick="filterCategory('sepatu')" class="filter-btn bg-zinc-800 text-zinc-300 hover:text-emerald-500 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition">Sepatu</button>
+          <button onclick="filterCategory('tas')" class="filter-btn bg-zinc-800 text-zinc-300 hover:text-emerald-500 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition">Tas</button>
+          <button onclick="filterCategory('topi')" class="filter-btn bg-zinc-800 text-zinc-300 hover:text-emerald-500 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition">Topi</button>
+          <button onclick="filterCategory('jaket')" class="filter-btn bg-zinc-800 text-zinc-300 hover:text-emerald-500 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition">Jaket</button>
+        </div>
 
-      <div class="flex gap-2 overflow-x-auto pb-4 mb-4" id="categoryFilters">
-        <button onclick="loadCatalog('all')" class="filter-btn active px-5 py-2 bg-indigo-600 text-white rounded-full text-sm font-semibold whitespace-nowrap transition">Semua</button>
-        <button onclick="loadCatalog('baju')" class="filter-btn px-5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-full text-sm font-semibold whitespace-nowrap transition">Baju</button>
-        <button onclick="loadCatalog('celana')" class="filter-btn px-5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-full text-sm font-semibold whitespace-nowrap transition">Celana</button>
-        <button onclick="loadCatalog('sepatu')" class="filter-btn px-5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-full text-sm font-semibold whitespace-nowrap transition">Sepatu</button>
-        <button onclick="loadCatalog('tas')" class="filter-btn px-5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-full text-sm font-semibold whitespace-nowrap transition">Tas</button>
-        <button onclick="loadCatalog('topi')" class="filter-btn px-5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-full text-sm font-semibold whitespace-nowrap transition">Topi</button>
-        <button onclick="loadCatalog('jaket')" class="filter-btn px-5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-full text-sm font-semibold whitespace-nowrap transition">Jaket</button>
+        <div class="w-full md:w-72 relative">
+          <input type="text" id="searchInput" placeholder="Cari nama barang..." class="w-full bg-zinc-950 border border-zinc-700 text-zinc-100 px-4 py-2 rounded-full text-sm focus:outline-none focus:border-emerald-500 transition" />
+          <button onclick="searchProduct()" class="absolute right-3 top-2 text-zinc-400 hover:text-emerald-500">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </button>
+        </div>
       </div>
+    </section>
 
-      <div id="catalogGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+    <main class="max-w-7xl mx-auto px-6 mb-20 flex-grow w-full">
+      <div id="catalogGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="col-span-full text-center py-20 text-zinc-500">Memuat produk...</div>
+      </div>
     </main>
 
+    <footer class="border-t border-zinc-800 py-8 text-center text-zinc-500 text-sm mt-auto">
+      <p>&copy; 2026 Thrift Lab - Tugas Akhir Praktikum Pemrograman Web.</p>
+    </footer>
+
     <script>
-      async function loadCatalog(category = "all") {
-        // Update styling tombol filter yang aktif
-        document.querySelectorAll(".filter-btn").forEach((btn) => {
-          btn.className = "filter-btn px-5 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-full text-sm font-semibold whitespace-nowrap transition";
-        });
-        event.currentTarget.className = "filter-btn active px-5 py-2 bg-indigo-600 text-white border border-indigo-600 rounded-full text-sm font-semibold whitespace-nowrap transition";
+      let currentCategory = "all";
 
-        const res = await fetch(`/api/products/available?category=${category}`);
-        const products = await res.json();
+      // Update indikator angka di ikon keranjang navbar
+      function updateNavCartCount() {
+        const cart = JSON.parse(localStorage.getItem("thrift_cart")) || [];
+        document.getElementById("navCartCount").textContent = cart.length;
+      }
+
+      // Fungsi untuk memuat produk (Sementara pakai Dummy API)
+      async function fetchProducts(category = "all", searchQuery = "") {
+        try {
+          // --- KODE DUMMY (Nanti ganti dengan fetch API express-mu) ---
+          const products = [
+            { id: 1, name: "Vintage Nike Windbreaker", category: "jaket", price: 150000, size: "L", condition: "9/10 Mulus", image_url: "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500&q=80" },
+            { id: 2, name: "Stussy Graphic Tee", category: "baju", price: 120000, size: "M", condition: "8/10", image_url: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&q=80" },
+            { id: 3, name: "Dickies 874 Work Pants", category: "celana", price: 180000, size: "32", condition: "Like New", image_url: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=500&q=80" },
+            { id: 4, name: "New Balance 990v5", category: "sepatu", price: 450000, size: "42", condition: "7/10", image_url: "https://images.unsplash.com/photo-1539185441755-769473a23570?w=500&q=80" },
+          ];
+
+          let filtered = products;
+          if (category !== "all") filtered = filtered.filter((p) => p.category === category);
+          if (searchQuery) filtered = filtered.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+          // ----------------------------------------------------------------------
+
+          renderProducts(filtered);
+        } catch (error) {
+          document.getElementById("catalogGrid").innerHTML = `<div class="col-span-full text-center text-red-500">Gagal memuat data produk.</div>`;
+        }
+      }
+
+      // Fungsi merender HTML Card Produk
+      function renderProducts(products) {
         const grid = document.getElementById("catalogGrid");
-
         if (products.length === 0) {
-          grid.innerHTML = '<div class="col-span-full text-center py-12 bg-white rounded-xl border border-dashed border-slate-300 text-slate-500">Tidak ada produk di kategori ini.</div>';
+          grid.innerHTML = '<div class="col-span-full text-center py-12 text-zinc-500">Tidak ada produk yang ditemukan.</div>';
           return;
         }
 
-        grid.innerHTML = "";
-        products.forEach((p) => {
-          grid.innerHTML += `
-                    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between">
-                        <div>
-                            <div class="relative h-64 bg-slate-100">
-                                <img src="${p.image_url}" class="w-full h-full object-cover">
-                                <span class="absolute top-3 left-3 bg-white text-slate-800 text-xs font-bold px-2.5 py-1 rounded-md shadow-sm uppercase">${p.category}</span>
-                                <span class="absolute top-3 right-3 bg-slate-900/80 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-md">Size: ${p.size}</span>
-                            </div>
-                            <div class="p-4">
-                                <h3 class="font-bold text-slate-800 text-lg line-clamp-1">${p.name}</h3>
-                                <p class="text-xs font-medium text-emerald-600 mt-1">${p.condition}</p>
-                                <p class="text-xl font-black text-slate-900 mt-2">Rp ${p.price.toLocaleString("id-ID")}</p>
-                            </div>
-                        </div>
-                        <div class="p-4 pt-0">
-                            <a href="/checkout.html?id=${p.id}" class="block w-full bg-slate-900 hover:bg-indigo-600 text-white text-center py-2.5 rounded-lg text-sm font-bold transition">Beli Sekarang</a>
-                        </div>
-                    </div>`;
-        });
+        // Map data produk ke HTML, JSON.stringify dipasang agar objek js bisa dilempar ke fungsi onclick
+        grid.innerHTML = products
+          .map((p) => {
+            const productData = JSON.stringify(p).replace(/"/g, "&quot;");
+            return `
+                <div class="bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 hover:border-emerald-500/50 transition group flex flex-col h-full">
+                    <div class="h-64 relative overflow-hidden bg-zinc-800">
+                        <img src="${p.image_url}" alt="${p.name}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                        <div class="absolute top-3 left-3 bg-zinc-950/80 backdrop-blur-sm text-zinc-100 text-xs font-bold px-3 py-1 rounded-full uppercase border border-zinc-700">${p.category}</div>
+                        <div class="absolute top-3 right-3 bg-emerald-500 text-zinc-950 text-xs font-black px-2 py-1 rounded shadow-sm">SIZE: ${p.size}</div>
+                    </div>
+                    <div class="p-5 flex flex-col flex-grow">
+                        <h3 class="font-bold text-zinc-100 text-lg line-clamp-1">${p.name}</h3>
+                        <p class="text-xs text-zinc-400 mt-1 mb-3">Kondisi: ${p.condition}</p>
+                        <p class="text-xl font-black text-emerald-500 mt-auto mb-4">Rp ${p.price.toLocaleString("id-ID")}</p>
+                        
+                        <button onclick="addToCart(${productData})" class="w-full bg-zinc-100 text-zinc-950 py-2.5 rounded-xl font-bold hover:bg-emerald-500 transition shadow-lg shadow-emerald-500/10">
+                            + Keranjang
+                        </button>
+                    </div>
+                </div>
+                `;
+          })
+          .join("");
       }
-      // Load semua produk saat pertama kali dibuka
-      window.onload = () => loadCatalog("all");
+
+      // FUNGSI INTI: Memasukkan barang ke LocalStorage
+      function addToCart(product) {
+        let cart = JSON.parse(localStorage.getItem("thrift_cart")) || [];
+
+        // Logika Thrift: Cek apakah barang sudah ada di keranjang karena stok cuma 1
+        const exists = cart.find((item) => item.id === product.id);
+        if (exists) {
+          alert("Barang ini sudah ada di dalam keranjang kamu!");
+          return;
+        }
+
+        cart.push(product);
+        localStorage.setItem("thrift_cart", JSON.stringify(cart));
+
+        alert(`${product.name} berhasil ditambahkan ke keranjang!`);
+        updateNavCartCount(); // Update indikator angka di navbar
+        window.location.href = "/cart.html"; // Pindah otomatis ke halaman keranjang
+      }
+
+      // FUNGSI FILTER KATEGORI & PENCARIAN
+      function filterCategory(category) {
+        currentCategory = category;
+
+        document.querySelectorAll(".filter-btn").forEach((btn) => {
+          btn.className = "filter-btn bg-zinc-800 text-zinc-300 hover:text-emerald-500 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition";
+        });
+        event.currentTarget.className = "filter-btn active bg-emerald-500 text-zinc-950 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition";
+
+        const searchQuery = document.getElementById("searchInput").value;
+        fetchProducts(category, searchQuery);
+      }
+
+      function searchProduct() {
+        const query = document.getElementById("searchInput").value;
+        fetchProducts(currentCategory, query);
+      }
+
+      document.getElementById("searchInput").addEventListener("keypress", function (e) {
+        if (e.key === "Enter") {
+          searchProduct();
+        }
+      });
+
+      // MUAT DATA SAAT HALAMAN DIBUKA
+      window.onload = () => {
+        fetchProducts("all");
+        updateNavCartCount();
+      };
     </script>
   </body>
 </html>

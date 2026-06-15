@@ -2,43 +2,96 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <title>Login Admin - Thrift Store</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thrift Lab - Masuk Akun</title>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white max-w-sm w-full rounded-2xl shadow-md border border-slate-200 p-6">
-      <h1 class="text-2xl font-black text-center text-slate-800 mb-6">LOGIN ADMIN</h1>
-      <div id="alert" class="hidden text-xs bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-center"></div>
-      <form id="loginForm" class="space-y-4">
+  <body class="bg-zinc-950 text-zinc-100 font-sans antialiased min-h-screen flex flex-col justify-center items-center p-6">
+    <div class="w-full max-w-md bg-zinc-900 rounded-3xl p-8 border border-zinc-800 shadow-2xl">
+      <div class="text-center mb-8">
+        <a href="/" class="text-3xl font-black tracking-tighter text-emerald-500 italic">THRIFT.LAB</a>
+        <h2 class="text-xl font-bold text-zinc-100 mt-4">Selamat Datang Kembali</h2>
+        <p class="text-xs text-zinc-400 mt-1">Silakan masuk untuk melanjutkan transaksi</p>
+      </div>
+
+      <div id="alertMessage" class="hidden text-sm p-4 rounded-xl mb-4 text-center font-semibold"></div>
+
+      <form id="loginForm" class="space-y-5">
         <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1">Username</label>
-          <input type="text" id="username" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" />
+          <label for="username" class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Username</label>
+          <input
+            type="text"
+            id="username"
+            required
+            autocomplete="username"
+            placeholder="Masukkan username"
+            class="w-full bg-zinc-950 border border-zinc-700 text-zinc-100 px-4 py-3 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+          />
         </div>
+
         <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1">Password</label>
-          <input type="password" id="password" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" />
+          <label for="password" class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Password</label>
+          <input
+            type="password"
+            id="password"
+            required
+            autocomplete="current-password"
+            placeholder="••••••••"
+            class="w-full bg-zinc-950 border border-zinc-700 text-zinc-100 px-4 py-3 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+          />
         </div>
-        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg text-sm transition">Masuk Dashboard</button>
+
+        <button type="submit" class="w-full bg-emerald-500 text-zinc-950 font-black py-3 rounded-xl text-sm tracking-wide hover:bg-emerald-400 active:scale-[0.98] transition shadow-lg shadow-emerald-500/10">MASUK SEKARANG</button>
       </form>
+
+      <div class="text-center mt-8 pt-6 border-t border-zinc-800 text-sm">
+        <p class="text-zinc-400">
+          Belum punya akun?
+          <a href="/register.html" class="text-emerald-500 font-bold hover:underline">Daftar di sini</a>
+        </p>
+        <a href="/" class="inline-block text-xs text-zinc-500 hover:text-zinc-300 mt-4">&larr; Kembali ke Katalog Utama</a>
+      </div>
     </div>
+
     <script>
       document.getElementById("loginForm").addEventListener("submit", async (e) => {
         e.preventDefault();
-        const username = document.getElementById("username").value;
-        const password = document.getElementById("password").value;
-        const alertBox = document.getElementById("alert");
 
-        const res = await fetch("/api/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          window.location.href = "/admin.html";
-        } else {
-          alertBox.textContent = data.message;
-          alertBox.classList.remove("hidden");
+        const usernameInput = document.getElementById("username").value;
+        const passwordInput = document.getElementById("password").value;
+        const alertBox = document.getElementById("alertMessage");
+
+        // Sembunyikan alert sebelum memproses
+        alertBox.className = "hidden text-sm p-4 rounded-xl mb-4 text-center font-semibold";
+
+        try {
+          const response = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: usernameInput, password: passwordInput }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            alertBox.textContent = "Login Berhasil! Mengalihkan...";
+            alertBox.className = "text-emerald-400 bg-emerald-950/30 border border-emerald-800 text-sm p-4 rounded-xl mb-4 text-center font-semibold block";
+
+            // Arahkan berdasarkan hak akses (Role)
+            setTimeout(() => {
+              if (data.role === "admin") {
+                window.location.href = "/admin.html";
+              } else {
+                window.location.href = "/";
+              }
+            }, 1000);
+          } else {
+            alertBox.textContent = data.message || "Username atau password salah.";
+            alertBox.className = "text-red-400 bg-red-950/30 border border-red-800 text-sm p-4 rounded-xl mb-4 text-center font-semibold block";
+          }
+        } catch (error) {
+          alertBox.textContent = "Tidak dapat terhubung ke server.";
+          alertBox.className = "text-red-400 bg-red-950/30 border border-red-800 text-sm p-4 rounded-xl mb-4 text-center font-semibold block";
         }
       });
     </script>

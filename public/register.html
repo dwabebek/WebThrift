@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thrift Lab - Pendaftaran Akun</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-zinc-950 text-zinc-100 font-sans antialiased min-h-screen flex flex-col justify-center items-center p-6 py-12">
+    <div class="w-full max-w-md bg-zinc-900 rounded-3xl p-8 border border-zinc-800 shadow-2xl">
+      <div class="text-center mb-6">
+        <a href="/" class="text-3xl font-black tracking-tighter text-emerald-500 italic">THRIFT.LAB</a>
+        <h2 class="text-xl font-bold text-zinc-100 mt-3">Buat Akun Baru</h2>
+        <p class="text-xs text-zinc-400 mt-1">Lengkapi data untuk mempermudah pengiriman pesanan</p>
+      </div>
+
+      <div id="alertMessage" class="hidden text-sm p-4 rounded-xl mb-4 text-center font-semibold"></div>
+
+      <form id="registerForm" class="space-y-4">
+        <div>
+          <label for="username" class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">Username</label>
+          <input
+            type="text"
+            id="username"
+            required
+            placeholder="Pilih username unik"
+            class="w-full bg-zinc-950 border border-zinc-700 text-zinc-100 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+          />
+        </div>
+
+        <div>
+          <label for="password" class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">Password</label>
+          <input
+            type="password"
+            id="password"
+            required
+            placeholder="Minimal 6 karakter"
+            class="w-full bg-zinc-950 border border-zinc-700 text-zinc-100 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+          />
+        </div>
+
+        <div>
+          <label for="fullName" class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">Nama Lengkap</label>
+          <input
+            type="text"
+            id="fullName"
+            required
+            placeholder="Nama sesuai KTP"
+            class="w-full bg-zinc-950 border border-zinc-700 text-zinc-100 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+          />
+        </div>
+
+        <div>
+          <label for="phone" class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">Nomor HP / WhatsApp</label>
+          <input
+            type="tel"
+            id="phone"
+            required
+            placeholder="Contoh: 08123456789"
+            class="w-full bg-zinc-950 border border-zinc-700 text-zinc-100 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+          />
+        </div>
+
+        <div>
+          <label for="address" class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">Alamat Pengiriman Lengkap</label>
+          <textarea
+            id="address"
+            required
+            rows="3"
+            placeholder="Nama jalan, nomor rumah, RT/RW, kecamatan, kabupaten, kode pos"
+            class="w-full bg-zinc-950 border border-zinc-700 text-zinc-100 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition resize-none"
+          ></textarea>
+        </div>
+
+        <button type="submit" class="w-full bg-emerald-500 text-zinc-950 font-black py-3 rounded-xl text-sm tracking-wide hover:bg-emerald-400 active:scale-[0.98] transition shadow-lg shadow-emerald-500/10 pt-2">DAFTAR SEKARANG</button>
+      </form>
+
+      <div class="text-center mt-6 pt-4 border-t border-zinc-800 text-sm">
+        <p class="text-zinc-400">
+          Sudah memiliki akun?
+          <a href="/login.html" class="text-emerald-500 font-bold hover:underline">Masuk di sini</a>
+        </p>
+      </div>
+    </div>
+
+    <script>
+      document.getElementById("registerForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const alertBox = document.getElementById("alertMessage");
+        const payload = {
+          username: document.getElementById("username").value,
+          password: document.getElementById("password").value,
+          full_name: document.getElementById("fullName").value,
+          phone: document.getElementById("phone").value,
+          address: document.getElementById("address").value,
+        };
+
+        alertBox.className = "hidden text-sm p-4 rounded-xl mb-4 text-center font-semibold";
+
+        try {
+          const response = await fetch("/api/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            alertBox.textContent = data.message || "Pendaftaran sukses! Mengalihkan ke halaman login...";
+            alertBox.className = "text-emerald-400 bg-emerald-950/30 border border-emerald-800 text-sm p-4 rounded-xl mb-4 text-center font-semibold block";
+
+            setTimeout(() => {
+              window.location.href = "/login.html";
+            }, 1500);
+          } else {
+            alertBox.textContent = data.message || "Gagal melakukan registrasi.";
+            alertBox.className = "text-red-400 bg-red-950/30 border border-red-800 text-sm p-4 rounded-xl mb-4 text-center font-semibold block";
+          }
+        } catch (error) {
+          alertBox.textContent = "Gagal terhubung dengan server database.";
+          alertBox.className = "text-red-400 bg-red-950/30 border border-red-800 text-sm p-4 rounded-xl mb-4 text-center font-semibold block";
+        }
+      });
+    </script>
+  </body>
+</html>

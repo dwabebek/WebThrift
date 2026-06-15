@@ -3,82 +3,209 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>Thrift Lab - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body class="bg-slate-50 p-6">
-    <div class="max-w-6xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-      <div class="flex justify-between items-center mb-6">
-        <div>
-          <h1 class="text-2xl font-black text-slate-800">Gudang & Inventori</h1>
-          <p class="text-sm text-slate-500">Kelola stok pakaian thrift.</p>
-        </div>
-        <div class="flex gap-2">
-          <a href="/add-product.html" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">+ Tambah Produk</a>
-          <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">Logout</button>
+  <body class="bg-zinc-950 text-zinc-100 font-sans antialiased min-h-screen flex flex-col relative">
+    <nav class="border-b border-zinc-800 bg-zinc-900 sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+        <h1 class="text-xl font-black tracking-tighter text-emerald-500 italic">THRIFT.LAB <span class="text-zinc-500 text-sm font-bold">/ ADMIN PANEL</span></h1>
+        <div class="flex items-center gap-4">
+          <a href="/" target="_blank" class="text-sm font-bold text-zinc-400 hover:text-emerald-500 transition">Lihat Web</a>
+          <button onclick="window.location.href = '/login.html'" class="bg-red-500/10 text-red-500 border border-red-500/20 px-4 py-1.5 rounded-full text-sm font-bold hover:bg-red-500 hover:text-white transition">LOGOUT</button>
         </div>
       </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse whitespace-nowrap">
-          <thead>
-            <tr class="bg-slate-100 text-slate-700 border-b border-slate-200 text-sm">
-              <th class="p-3">Nama Pakaian</th>
-              <th class="p-3">Kategori</th>
-              <th class="p-3">Harga</th>
-              <th class="p-3">Status</th>
-              <th class="p-3">Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="adminTableBody"></tbody>
-        </table>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-10 w-full flex-grow space-y-12">
+      <div>
+        <div class="flex justify-between items-end mb-8">
+          <div>
+            <h2 class="text-3xl font-black text-zinc-100">Inventori Pakaian</h2>
+            <p class="text-zinc-400 text-sm mt-1">Kelola stok barang, harga, dan ketersediaan.</p>
+          </div>
+          <button onclick="openModal()" class="bg-emerald-500 text-zinc-950 px-5 py-2.5 rounded-xl font-bold hover:bg-emerald-400 transition">+ Tambah Barang Baru</button>
+        </div>
+        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
+          <table class="w-full text-left border-collapse whitespace-nowrap">
+            <thead>
+              <tr class="bg-zinc-950/50 border-b border-zinc-800 text-xs uppercase text-zinc-500">
+                <th class="p-5">Produk</th>
+                <th class="p-5">Kategori & Size</th>
+                <th class="p-5">Kondisi</th>
+                <th class="p-5">Harga</th>
+                <th class="p-5 text-center">Status</th>
+                <th class="p-5 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="productTableBody" class="divide-y divide-zinc-800"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <h2 class="text-2xl font-black text-emerald-500 mb-6">Notifikasi Pembayaran Masuk</h2>
+        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden">
+          <table class="w-full text-left">
+            <thead>
+              <tr class="bg-zinc-950/50 text-xs uppercase text-zinc-500">
+                <th class="p-5">Tanggal</th>
+                <th class="p-5">Total</th>
+                <th class="p-5">Bukti</th>
+                <th class="p-5 text-center">Status</th>
+                <th class="p-5 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="orderTableBody" class="divide-y divide-zinc-800"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <div id="productModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-2xl p-8 relative max-h-[90vh] overflow-y-auto">
+        <h3 id="modalTitle" class="text-2xl font-black mb-6">Tambah Barang</h3>
+        <form id="productForm" class="space-y-4">
+          <input type="hidden" id="productId" />
+          <input type="text" id="productName" required placeholder="Nama Barang" class="w-full bg-zinc-950 border border-zinc-700 px-4 py-3 rounded-xl text-sm" />
+          <div class="grid grid-cols-2 gap-4">
+            <select id="productCategory" class="w-full bg-zinc-950 border border-zinc-700 px-4 py-3 rounded-xl text-sm">
+              <option value="baju">Baju</option>
+              <option value="celana">Celana</option>
+              <option value="sepatu">Sepatu</option>
+            </select>
+            <input type="text" id="productSize" required placeholder="Size" class="w-full bg-zinc-950 border border-zinc-700 px-4 py-3 rounded-xl text-sm" />
+          </div>
+          <input type="number" id="productPrice" required placeholder="Harga" class="w-full bg-zinc-950 border border-zinc-700 px-4 py-3 rounded-xl text-sm" />
+          <input type="text" id="productCondition" required placeholder="Kondisi" class="w-full bg-zinc-950 border border-zinc-700 px-4 py-3 rounded-xl text-sm" />
+          <div>
+            <input type="file" id="productImageInput" accept="image/*" class="w-full bg-zinc-950 border border-zinc-700 px-4 py-2 rounded-xl text-sm" />
+            <input type="hidden" id="productImageBase64" />
+            <img id="imagePreview" class="mt-3 w-20 h-20 object-cover rounded-lg border hidden" />
+          </div>
+          <button type="submit" class="w-full bg-emerald-500 text-zinc-950 font-black py-3 rounded-xl">SIMPAN DATA</button>
+        </form>
       </div>
     </div>
-    <script>
-      async function checkAuthAndLoad() {
-        const sessionRes = await fetch("/api/session-check");
-        const sessionData = await sessionRes.json();
-        if (!sessionData.loggedIn) {
-          window.location.href = "/login.html";
-          return;
-        }
 
-        const res = await fetch("/api/products");
-        if (res.status === 401) {
-          window.location.href = "/login.html";
-          return;
-        }
-        const products = await res.json();
-        const tbody = document.getElementById("adminTableBody");
-        tbody.innerHTML = "";
-        products.forEach((p) => {
-          tbody.innerHTML += `
-                    <tr class="border-b border-slate-200 text-sm hover:bg-slate-50">
-                        <td class="p-3 font-semibold text-slate-800">${p.name}</td>
-                        <td class="p-3 uppercase text-xs font-bold text-slate-500">${p.category}</td>
-                        <td class="p-3">Rp ${p.price.toLocaleString("id-ID")}</td>
-                        <td class="p-3"><span class="px-2 py-1 rounded-md text-xs font-bold ${p.status === "available" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}">${p.status.toUpperCase()}</span></td>
-                        <td class="p-3 flex gap-3">
-                            <button onclick="editPage(${p.id})" class="text-blue-600 hover:underline font-medium">Edit</button>
-                            <button onclick="deleteProduct(${p.id})" class="text-red-600 hover:underline font-medium">Hapus</button>
-                        </td>
-                    </tr>`;
-        });
+    <script>
+      // --- LOGIKA DATA ---
+      function loadProducts() {
+        return JSON.parse(localStorage.getItem("thrift_products")) || [];
       }
-      function editPage(id) {
-        localStorage.setItem("editProductId", id);
-        window.location.href = "/edit-product.html";
+      function saveProducts(p) {
+        localStorage.setItem("thrift_products", JSON.stringify(p));
+        renderTable();
       }
-      async function deleteProduct(id) {
-        if (confirm("Yakin hapus dari inventori secara permanen?")) {
-          await fetch(`/api/products/${id}`, { method: "DELETE" });
-          checkAuthAndLoad();
-        }
+      function loadOrders() {
+        return JSON.parse(localStorage.getItem("thrift_orders")) || [];
       }
-      async function logout() {
-        await fetch("/api/logout", { method: "POST" });
-        window.location.href = "/login.html";
+
+      // --- RENDER TABLE PRODUK (FITUR LAMA) ---
+      function renderTable() {
+        const products = loadProducts();
+        document.getElementById("productTableBody").innerHTML = products
+          .map(
+            (p) => `
+                <tr class="hover:bg-zinc-950/50">
+                    <td class="p-5 flex items-center gap-4"><img src="${p.image_url}" class="w-12 h-12 rounded-lg object-cover bg-zinc-800"><span class="font-bold">${p.name}</span></td>
+                    <td class="p-5">${p.category.toUpperCase()} / ${p.size}</td>
+                    <td class="p-5">${p.condition}</td>
+                    <td class="p-5 font-black text-emerald-500">Rp ${p.price.toLocaleString()}</td>
+                    <td class="p-5 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${p.status === "available" ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"}">${p.status.toUpperCase()}</span></td>
+                    <td class="p-5 text-right"><button onclick="editProduct(${p.id})" class="text-zinc-400 hover:text-emerald-500 mr-3">Edit</button><button onclick="deleteProduct(${p.id})" class="text-zinc-400 hover:text-red-500">Hapus</button></td>
+                </tr>
+            `,
+          )
+          .join("");
       }
-      checkAuthAndLoad();
+
+      // --- RENDER ORDER (FITUR BARU) ---
+      function renderOrders() {
+        const orders = loadOrders();
+        document.getElementById("orderTableBody").innerHTML = orders
+          .map(
+            (o, index) => `
+                <tr class="hover:bg-zinc-950/50">
+                    <td class="p-5">${o.date}</td>
+                    <td class="p-5 font-bold">${o.total}</td>
+                    <td class="p-5"><img src="${o.proof}" class="w-12 h-12 rounded cursor-pointer" onclick="window.open('${o.proof}')"></td>
+                    <td class="p-5 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${o.status === "success" ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"}">${o.status.toUpperCase()}</span></td>
+                    <td class="p-5 text-right">
+                        ${o.status === "pending_verification" ? `<button onclick="verifyOrder(${index})" class="text-emerald-500 font-bold hover:underline">Verifikasi</button>` : "-"}
+                    </td>
+                </tr>
+            `,
+          )
+          .join("");
+      }
+
+      function verifyOrder(index) {
+        let orders = loadOrders();
+        orders[index].status = "success";
+        localStorage.setItem("thrift_orders", JSON.stringify(orders));
+        renderOrders();
+      }
+
+      // --- FUNGSI MODAL & FORM (FITUR LAMA) ---
+      document.getElementById("productImageInput").addEventListener("change", function (e) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          document.getElementById("productImageBase64").value = ev.target.result;
+          document.getElementById("imagePreview").src = ev.target.result;
+          document.getElementById("imagePreview").classList.remove("hidden");
+        };
+        reader.readAsDataURL(e.target.files[0]);
+      });
+
+      document.getElementById("productForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const products = loadProducts();
+        const id = document.getElementById("productId").value;
+        const item = {
+          id: id ? parseInt(id) : new Date().getTime(),
+          name: document.getElementById("productName").value,
+          category: document.getElementById("productCategory").value,
+          size: document.getElementById("productSize").value,
+          price: parseInt(document.getElementById("productPrice").value),
+          condition: document.getElementById("productCondition").value,
+          image_url: document.getElementById("productImageBase64").value,
+          status: "available",
+        };
+        if (id) products[products.findIndex((p) => p.id == id)] = item;
+        else products.unshift(item);
+        saveProducts(products);
+        closeModal();
+      });
+
+      function editProduct(id) {
+        const p = loadProducts().find((p) => p.id == id);
+        document.getElementById("productId").value = p.id;
+        document.getElementById("productName").value = p.name;
+        document.getElementById("productCategory").value = p.category;
+        document.getElementById("productSize").value = p.size;
+        document.getElementById("productPrice").value = p.price;
+        document.getElementById("productCondition").value = p.condition;
+        document.getElementById("productImageBase64").value = p.image_url;
+        document.getElementById("imagePreview").src = p.image_url;
+        document.getElementById("imagePreview").classList.remove("hidden");
+        document.getElementById("productModal").classList.remove("hidden");
+      }
+
+      function deleteProduct(id) {
+        if (confirm("Hapus barang?")) saveProducts(loadProducts().filter((p) => p.id != id));
+      }
+      function openModal() {
+        document.getElementById("productForm").reset();
+        document.getElementById("productModal").classList.remove("hidden");
+      }
+      function closeModal() {
+        document.getElementById("productModal").classList.add("hidden");
+      }
+      window.onload = () => {
+        renderTable();
+        renderOrders();
+      };
     </script>
   </body>
 </html>
