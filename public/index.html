@@ -83,18 +83,10 @@
 
     <script>
       let currentCategory = "all";
-      const defaultProducts = [
-        { id: 1, name: "Vintage Nike Windbreaker", category: "jaket", price: 150000, size: "L", condition: "9/10 Mulus", image_url: "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500&q=80", status: "available" },
-        { id: 2, name: "Stussy Graphic Tee", category: "baju", price: 120000, size: "M", condition: "8/10", image_url: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&q=80", status: "available" },
-        { id: 3, name: "Dickies 874 Work Pants", category: "celana", price: 180000, size: "32", condition: "Like New", image_url: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=500&q=80", status: "available" },
-        { id: 4, name: "New Balance 990v5", category: "sepatu", price: 450000, size: "42", condition: "7/10", image_url: "https://images.unsplash.com/photo-1539185441755-769473a23570?w=500&q=80", status: "available" },
-      ];
+      const productFallbackImage = "https://images.unsplash.com/photo-1445205170230-053b83016050?w=500&q=80";
 
-      function loadCatalogProducts() {
-        const savedProducts = JSON.parse(localStorage.getItem("thrift_products")) || [];
-        const products = savedProducts.length > 0 ? savedProducts : defaultProducts;
-
-        return products
+      function normalizeCatalogProducts(products) {
+        return (Array.isArray(products) ? products : [])
           .map((product) => ({
             ...product,
             price: Number(product.price) || 0,
@@ -222,10 +214,17 @@
         window.location.href = "/";
       }
 
-      // Fungsi untuk memuat produk dari data admin di localStorage
+      // Fungsi untuk memuat produk dari database server
       async function fetchProducts(category = "all", searchQuery = "") {
         try {
-          const products = loadCatalogProducts();
+          const response = await fetch("/api/products");
+          const data = await response.json();
+
+          if (!response.ok || !data.success) {
+            throw new Error(data.message || "Gagal memuat produk.");
+          }
+
+          const products = normalizeCatalogProducts(data.products);
           let filtered = products;
 
           if (category !== "all") filtered = filtered.filter((p) => p.category === category);
@@ -249,7 +248,7 @@
         grid.innerHTML = products
           .map((p) => {
             const productData = JSON.stringify(p).replace(/"/g, "&quot;");
-            const imageUrl = p.image_url || "https://images.unsplash.com/photo-1445205170230-053b83016050?w=500&q=80";
+            const imageUrl = p.image_url || productFallbackImage;
             return `
                 <div class="bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 hover:border-emerald-500/50 transition group flex flex-col h-full">
                     <div class="h-64 relative overflow-hidden bg-zinc-800">
@@ -316,10 +315,6 @@
       });
 
       window.addEventListener("storage", (e) => {
-        if (e.key === "thrift_products") {
-          fetchProducts(currentCategory, document.getElementById("searchInput").value);
-        }
-
         if (e.key === "thrift_current_user") {
           updateAdminPanelLink();
         }
