@@ -7,12 +7,47 @@
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body class="bg-zinc-950 text-zinc-100 font-sans antialiased min-h-screen flex flex-col relative">
+    <script>
+      function getCurrentUser() {
+        try {
+          const currentUser = JSON.parse(localStorage.getItem("thrift_current_user")) || null;
+
+          if (currentUser && currentUser.profile_photo) {
+            delete currentUser.profile_photo;
+            localStorage.setItem("thrift_current_user", JSON.stringify(currentUser));
+          }
+
+          if (currentUser && currentUser.username === "admin" && currentUser.role !== "admin") {
+            currentUser.role = "admin";
+            localStorage.setItem("thrift_current_user", JSON.stringify(currentUser));
+          }
+
+          return currentUser;
+        } catch (error) {
+          localStorage.removeItem("thrift_current_user");
+          return null;
+        }
+      }
+
+      const currentUser = getCurrentUser();
+
+      if (!currentUser || currentUser.role !== "admin") {
+        alert("Silakan login sebagai admin terlebih dahulu.");
+        window.location.href = "/login.html";
+      }
+
+      function logoutAdmin() {
+        localStorage.removeItem("thrift_current_user");
+        window.location.href = "/login.html";
+      }
+    </script>
+
     <nav class="border-b border-zinc-800 bg-zinc-900 sticky top-0 z-40">
       <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
         <h1 class="text-xl font-black tracking-tighter text-emerald-500 italic">THRIFT.LAB <span class="text-zinc-500 text-sm font-bold">/ ADMIN PANEL</span></h1>
         <div class="flex items-center gap-4">
           <a href="/" target="_blank" class="text-sm font-bold text-zinc-400 hover:text-emerald-500 transition">Lihat Web</a>
-          <button onclick="window.location.href = '/login.html'" class="bg-red-500/10 text-red-500 border border-red-500/20 px-4 py-1.5 rounded-full text-sm font-bold hover:bg-red-500 hover:text-white transition">LOGOUT</button>
+          <button onclick="logoutAdmin()" class="bg-red-500/10 text-red-500 border border-red-500/20 px-4 py-1.5 rounded-full text-sm font-bold hover:bg-red-500 hover:text-white transition">LOGOUT</button>
         </div>
       </div>
     </nav>
@@ -73,6 +108,9 @@
               <option value="baju">Baju</option>
               <option value="celana">Celana</option>
               <option value="sepatu">Sepatu</option>
+              <option value="tas">Tas</option>
+              <option value="topi">Topi</option>
+              <option value="jaket">Jaket</option>
             </select>
             <input type="text" id="productSize" required placeholder="Size" class="w-full bg-zinc-950 border border-zinc-700 px-4 py-3 rounded-xl text-sm" />
           </div>
@@ -99,6 +137,17 @@
       }
       function loadOrders() {
         return JSON.parse(localStorage.getItem("thrift_orders")) || [];
+      }
+      function getOrderStatusClass(status) {
+        if (status === "success") return "bg-emerald-500/10 text-emerald-500";
+        if (status === "pending_verification") return "bg-amber-500/10 text-amber-500";
+        return "bg-zinc-500/10 text-zinc-400";
+      }
+      function getOrderStatusLabel(status) {
+        if (status === "success") return "SUCCESS";
+        if (status === "pending_verification") return "MENUNGGU VERIFIKASI";
+        if (status === "pending_payment") return "MENUNGGU BUKTI";
+        return (status || "UNKNOWN").toUpperCase();
       }
 
       // --- RENDER TABLE PRODUK (FITUR LAMA) ---
@@ -129,10 +178,10 @@
                 <tr class="hover:bg-zinc-950/50">
                     <td class="p-5">${o.date}</td>
                     <td class="p-5 font-bold">${o.total}</td>
-                    <td class="p-5"><img src="${o.proof}" class="w-12 h-12 rounded cursor-pointer" onclick="window.open('${o.proof}')"></td>
-                    <td class="p-5 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${o.status === "success" ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"}">${o.status.toUpperCase()}</span></td>
+                    <td class="p-5">${o.proof ? `<img src="${o.proof}" alt="Bukti pembayaran" class="w-12 h-12 rounded cursor-pointer object-cover" onclick="window.open(this.src)">` : `<span class="text-xs font-bold text-zinc-500">Belum upload</span>`}</td>
+                    <td class="p-5 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${getOrderStatusClass(o.proof ? o.status : "pending_payment")}">${getOrderStatusLabel(o.proof ? o.status : "pending_payment")}</span></td>
                     <td class="p-5 text-right">
-                        ${o.status === "pending_verification" ? `<button onclick="verifyOrder(${index})" class="text-emerald-500 font-bold hover:underline">Verifikasi</button>` : "-"}
+                        ${o.status === "pending_verification" && o.proof ? `<button onclick="verifyOrder(${index})" class="text-emerald-500 font-bold hover:underline">Verifikasi</button>` : "-"}
                     </td>
                 </tr>
             `,
@@ -169,7 +218,7 @@
           size: document.getElementById("productSize").value,
           price: parseInt(document.getElementById("productPrice").value),
           condition: document.getElementById("productCondition").value,
-          image_url: document.getElementById("productImageBase64").value,
+          image_url: document.getElementById("productImageBase64").value || "https://images.unsplash.com/photo-1445205170230-053b83016050?w=500&q=80",
           status: "available",
         };
         if (id) products[products.findIndex((p) => p.id == id)] = item;
@@ -197,6 +246,10 @@
       }
       function openModal() {
         document.getElementById("productForm").reset();
+        document.getElementById("productId").value = "";
+        document.getElementById("productImageBase64").value = "";
+        document.getElementById("imagePreview").src = "";
+        document.getElementById("imagePreview").classList.add("hidden");
         document.getElementById("productModal").classList.remove("hidden");
       }
       function closeModal() {
