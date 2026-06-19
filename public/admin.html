@@ -7,12 +7,47 @@
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body class="bg-zinc-950 text-zinc-100 font-sans antialiased min-h-screen flex flex-col relative">
+    <script>
+      function getCurrentUser() {
+        try {
+          const currentUser = JSON.parse(localStorage.getItem("thrift_current_user")) || null;
+
+          if (currentUser && currentUser.profile_photo) {
+            delete currentUser.profile_photo;
+            localStorage.setItem("thrift_current_user", JSON.stringify(currentUser));
+          }
+
+          if (currentUser && currentUser.username === "admin" && currentUser.role !== "admin") {
+            currentUser.role = "admin";
+            localStorage.setItem("thrift_current_user", JSON.stringify(currentUser));
+          }
+
+          return currentUser;
+        } catch (error) {
+          localStorage.removeItem("thrift_current_user");
+          return null;
+        }
+      }
+
+      const currentUser = getCurrentUser();
+
+      if (!currentUser || currentUser.role !== "admin") {
+        alert("Silakan login sebagai admin terlebih dahulu.");
+        window.location.href = "/login.html";
+      }
+
+      function logoutAdmin() {
+        localStorage.removeItem("thrift_current_user");
+        window.location.href = "/login.html";
+      }
+    </script>
+
     <nav class="border-b border-zinc-800 bg-zinc-900 sticky top-0 z-40">
       <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
         <h1 class="text-xl font-black tracking-tighter text-emerald-500 italic">THRIFT.LAB <span class="text-zinc-500 text-sm font-bold">/ ADMIN PANEL</span></h1>
         <div class="flex items-center gap-4">
           <a href="/" target="_blank" class="text-sm font-bold text-zinc-400 hover:text-emerald-500 transition">Lihat Web</a>
-          <button onclick="window.location.href = '/login.html'" class="bg-red-500/10 text-red-500 border border-red-500/20 px-4 py-1.5 rounded-full text-sm font-bold hover:bg-red-500 hover:text-white transition">LOGOUT</button>
+          <button onclick="logoutAdmin()" class="bg-red-500/10 text-red-500 border border-red-500/20 px-4 py-1.5 rounded-full text-sm font-bold hover:bg-red-500 hover:text-white transition">LOGOUT</button>
         </div>
       </div>
     </nav>
@@ -73,6 +108,9 @@
               <option value="baju">Baju</option>
               <option value="celana">Celana</option>
               <option value="sepatu">Sepatu</option>
+              <option value="tas">Tas</option>
+              <option value="topi">Topi</option>
+              <option value="jaket">Jaket</option>
             </select>
             <input type="text" id="productSize" required placeholder="Size" class="w-full bg-zinc-950 border border-zinc-700 px-4 py-3 rounded-xl text-sm" />
           </div>
@@ -90,34 +128,94 @@
 
     <script>
       // --- LOGIKA DATA ---
-      function loadProducts() {
-        return JSON.parse(localStorage.getItem("thrift_products")) || [];
+      const productFallbackImage = "https://images.unsplash.com/photo-1445205170230-053b83016050?w=500&q=80";
+      let productsCache = [];
+
+      async function requestJson(url, options = {}) {
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {}),
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || data.success === false) {
+          throw new Error(data.message || "Terjadi kesalahan pada server.");
+        }
+
+        return data;
       }
-      function saveProducts(p) {
-        localStorage.setItem("thrift_products", JSON.stringify(p));
-        renderTable();
+
+      async function loadProducts() {
+        const data = await requestJson("/api/products");
+        productsCache = Array.isArray(data.products) ? data.products : [];
+        return productsCache;
       }
+
+      function findProductById(id) {
+        return productsCache.find((product) => Number(product.id) === Number(id));
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
       function loadOrders() {
         return JSON.parse(localStorage.getItem("thrift_orders")) || [];
       }
+      function getOrderStatusClass(status) {
+        if (status === "success") return "bg-emerald-500/10 text-emerald-500";
+        if (status === "pending_verification") return "bg-amber-500/10 text-amber-500";
+        return "bg-zinc-500/10 text-zinc-400";
+      }
+      function getOrderStatusLabel(status) {
+        if (status === "success") return "SUCCESS";
+        if (status === "pending_verification") return "MENUNGGU VERIFIKASI";
+        if (status === "pending_payment") return "MENUNGGU BUKTI";
+        return (status || "UNKNOWN").toUpperCase();
+      }
 
-      // --- RENDER TABLE PRODUK (FITUR LAMA) ---
-      function renderTable() {
-        const products = loadProducts();
-        document.getElementById("productTableBody").innerHTML = products
-          .map(
-            (p) => `
+      // --- RENDER TABLE PRODUK ---
+      async function renderTable() {
+        const tableBody = document.getElementById("productTableBody");
+        tableBody.innerHTML = `<tr><td colspan="6" class="p-5 text-center text-zinc-500">Memuat produk...</td></tr>`;
+
+        try {
+          const products = await loadProducts();
+
+          if (products.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="6" class="p-5 text-center text-zinc-500">Belum ada produk.</td></tr>`;
+            return;
+          }
+
+          tableBody.innerHTML = products
+            .map((p) => {
+              const status = p.status || "available";
+              const statusClass = status === "available" ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500";
+              const imageUrl = p.image_url || productFallbackImage;
+
+              return `
                 <tr class="hover:bg-zinc-950/50">
-                    <td class="p-5 flex items-center gap-4"><img src="${p.image_url}" class="w-12 h-12 rounded-lg object-cover bg-zinc-800"><span class="font-bold">${p.name}</span></td>
-                    <td class="p-5">${p.category.toUpperCase()} / ${p.size}</td>
-                    <td class="p-5">${p.condition}</td>
-                    <td class="p-5 font-black text-emerald-500">Rp ${p.price.toLocaleString()}</td>
-                    <td class="p-5 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${p.status === "available" ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"}">${p.status.toUpperCase()}</span></td>
-                    <td class="p-5 text-right"><button onclick="editProduct(${p.id})" class="text-zinc-400 hover:text-emerald-500 mr-3">Edit</button><button onclick="deleteProduct(${p.id})" class="text-zinc-400 hover:text-red-500">Hapus</button></td>
+                    <td class="p-5 flex items-center gap-4"><img src="${escapeHtml(imageUrl)}" class="w-12 h-12 rounded-lg object-cover bg-zinc-800"><span class="font-bold">${escapeHtml(p.name)}</span></td>
+                    <td class="p-5">${escapeHtml(String(p.category || "-").toUpperCase())} / ${escapeHtml(p.size || "-")}</td>
+                    <td class="p-5">${escapeHtml(p.condition || "-")}</td>
+                    <td class="p-5 font-black text-emerald-500">Rp ${Number(p.price || 0).toLocaleString("id-ID")}</td>
+                    <td class="p-5 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${statusClass}">${escapeHtml(String(status).toUpperCase())}</span></td>
+                    <td class="p-5 text-right"><button onclick="editProduct(${Number(p.id)})" class="text-zinc-400 hover:text-emerald-500 mr-3">Edit</button><button onclick="deleteProduct(${Number(p.id)})" class="text-zinc-400 hover:text-red-500">Hapus</button></td>
                 </tr>
-            `,
-          )
-          .join("");
+            `;
+            })
+            .join("");
+        } catch (error) {
+          tableBody.innerHTML = `<tr><td colspan="6" class="p-5 text-center text-red-500">${escapeHtml(error.message)}</td></tr>`;
+        }
       }
 
       // --- RENDER ORDER (FITUR BARU) ---
@@ -129,10 +227,10 @@
                 <tr class="hover:bg-zinc-950/50">
                     <td class="p-5">${o.date}</td>
                     <td class="p-5 font-bold">${o.total}</td>
-                    <td class="p-5"><img src="${o.proof}" class="w-12 h-12 rounded cursor-pointer" onclick="window.open('${o.proof}')"></td>
-                    <td class="p-5 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${o.status === "success" ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"}">${o.status.toUpperCase()}</span></td>
+                    <td class="p-5">${o.proof ? `<img src="${o.proof}" alt="Bukti pembayaran" class="w-12 h-12 rounded cursor-pointer object-cover" onclick="window.open(this.src)">` : `<span class="text-xs font-bold text-zinc-500">Belum upload</span>`}</td>
+                    <td class="p-5 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${getOrderStatusClass(o.proof ? o.status : "pending_payment")}">${getOrderStatusLabel(o.proof ? o.status : "pending_payment")}</span></td>
                     <td class="p-5 text-right">
-                        ${o.status === "pending_verification" ? `<button onclick="verifyOrder(${index})" class="text-emerald-500 font-bold hover:underline">Verifikasi</button>` : "-"}
+                        ${o.status === "pending_verification" && o.proof ? `<button onclick="verifyOrder(${index})" class="text-emerald-500 font-bold hover:underline">Verifikasi</button>` : "-"}
                     </td>
                 </tr>
             `,
@@ -149,6 +247,8 @@
 
       // --- FUNGSI MODAL & FORM (FITUR LAMA) ---
       document.getElementById("productImageInput").addEventListener("change", function (e) {
+        if (!e.target.files[0]) return;
+
         const reader = new FileReader();
         reader.onload = (ev) => {
           document.getElementById("productImageBase64").value = ev.target.result;
@@ -158,28 +258,56 @@
         reader.readAsDataURL(e.target.files[0]);
       });
 
-      document.getElementById("productForm").addEventListener("submit", (e) => {
+      document.getElementById("productForm").addEventListener("submit", async (e) => {
         e.preventDefault();
-        const products = loadProducts();
         const id = document.getElementById("productId").value;
+        const existingProduct = id ? findProductById(id) : null;
+        const submitButton = e.currentTarget.querySelector('button[type="submit"]');
         const item = {
-          id: id ? parseInt(id) : new Date().getTime(),
           name: document.getElementById("productName").value,
           category: document.getElementById("productCategory").value,
           size: document.getElementById("productSize").value,
           price: parseInt(document.getElementById("productPrice").value),
           condition: document.getElementById("productCondition").value,
-          image_url: document.getElementById("productImageBase64").value,
-          status: "available",
+          image_url: document.getElementById("productImageBase64").value || productFallbackImage,
+          status: existingProduct ? existingProduct.status || "available" : "available",
         };
-        if (id) products[products.findIndex((p) => p.id == id)] = item;
-        else products.unshift(item);
-        saveProducts(products);
-        closeModal();
+
+        submitButton.disabled = true;
+        submitButton.textContent = "MENYIMPAN...";
+
+        try {
+          if (id) {
+            await requestJson(`/api/products/${encodeURIComponent(id)}`, {
+              method: "PUT",
+              body: JSON.stringify(item),
+            });
+          } else {
+            await requestJson("/api/products", {
+              method: "POST",
+              body: JSON.stringify(item),
+            });
+          }
+
+          closeModal();
+          await renderTable();
+        } catch (error) {
+          alert(error.message);
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = "SIMPAN DATA";
+        }
       });
 
       function editProduct(id) {
-        const p = loadProducts().find((p) => p.id == id);
+        const p = findProductById(id);
+
+        if (!p) {
+          alert("Produk tidak ditemukan.");
+          return;
+        }
+
+        document.getElementById("modalTitle").textContent = "Edit Barang";
         document.getElementById("productId").value = p.id;
         document.getElementById("productName").value = p.name;
         document.getElementById("productCategory").value = p.category;
@@ -192,11 +320,25 @@
         document.getElementById("productModal").classList.remove("hidden");
       }
 
-      function deleteProduct(id) {
-        if (confirm("Hapus barang?")) saveProducts(loadProducts().filter((p) => p.id != id));
+      async function deleteProduct(id) {
+        if (!confirm("Hapus barang?")) return;
+
+        try {
+          await requestJson(`/api/products/${encodeURIComponent(id)}`, {
+            method: "DELETE",
+          });
+          await renderTable();
+        } catch (error) {
+          alert(error.message);
+        }
       }
       function openModal() {
+        document.getElementById("modalTitle").textContent = "Tambah Barang";
         document.getElementById("productForm").reset();
+        document.getElementById("productId").value = "";
+        document.getElementById("productImageBase64").value = "";
+        document.getElementById("imagePreview").src = "";
+        document.getElementById("imagePreview").classList.add("hidden");
         document.getElementById("productModal").classList.remove("hidden");
       }
       function closeModal() {

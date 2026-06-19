@@ -36,7 +36,7 @@
             id="password"
             required
             autocomplete="current-password"
-            placeholder="••••••••"
+            placeholder="Masukkan password"
             class="w-full bg-zinc-950 border border-zinc-700 text-zinc-100 px-4 py-3 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
           />
         </div>
@@ -74,16 +74,26 @@
           const data = await response.json();
 
           if (response.ok && data.success) {
+            const isAdminLogin = usernameInput.trim() === "admin" && passwordInput === "123";
+            const userRole = isAdminLogin ? "admin" : data.role || "customer";
+
+            localStorage.setItem(
+              "thrift_current_user",
+              JSON.stringify({
+                username: data.username || usernameInput,
+                role: userRole,
+                full_name: data.full_name || "",
+                phone: data.phone || "",
+                address: data.address || "",
+              }),
+            );
+
             alertBox.textContent = "Login Berhasil! Mengalihkan...";
             alertBox.className = "text-emerald-400 bg-emerald-950/30 border border-emerald-800 text-sm p-4 rounded-xl mb-4 text-center font-semibold block";
 
-            // Arahkan berdasarkan hak akses (Role)
+            // Setelah login, navbar halaman utama akan menampilkan menu sesuai role.
             setTimeout(() => {
-              if (data.role === "admin") {
-                window.location.href = "/admin.html";
-              } else {
-                window.location.href = "/";
-              }
+              window.location.href = "/";
             }, 1000);
           } else {
             alertBox.textContent = data.message || "Username atau password salah.";
