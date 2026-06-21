@@ -46,7 +46,7 @@
       <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
         <h1 class="text-xl font-black tracking-tighter text-emerald-500 italic">THRIFT.LAB <span class="text-zinc-500 text-sm font-bold">/ ADMIN PANEL</span></h1>
         <div class="flex items-center gap-4">
-          <a href="/" target="_blank" class="text-sm font-bold text-zinc-400 hover:text-emerald-500 transition">Lihat Web</a>
+          <a href="/" target="_blank" class="text-sm font-bold text-zinc-400 hover:text-emerald-500 transition">Lihat Katalog</a>
           <button onclick="logoutAdmin()" class="bg-red-500/10 text-red-500 border border-red-500/20 px-4 py-1.5 rounded-full text-sm font-bold hover:bg-red-500 hover:text-white transition">LOGOUT</button>
         </div>
       </div>
@@ -181,6 +181,11 @@
         if (status === "pending_payment") return "MENUNGGU BUKTI";
         return (status || "UNKNOWN").toUpperCase();
       }
+      function getProductStatusLabel(status) {
+        return String(status || "available")
+          .replace(/_/g, " ")
+          .toUpperCase();
+      }
 
       // --- RENDER TABLE PRODUK ---
       async function renderTable() {
@@ -207,7 +212,7 @@
                     <td class="p-5">${escapeHtml(String(p.category || "-").toUpperCase())} / ${escapeHtml(p.size || "-")}</td>
                     <td class="p-5">${escapeHtml(p.condition || "-")}</td>
                     <td class="p-5 font-black text-emerald-500">Rp ${Number(p.price || 0).toLocaleString("id-ID")}</td>
-                    <td class="p-5 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${statusClass}">${escapeHtml(String(status).toUpperCase())}</span></td>
+                    <td class="p-5 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${statusClass}">${escapeHtml(getProductStatusLabel(status))}</span></td>
                     <td class="p-5 text-right"><button onclick="editProduct(${Number(p.id)})" class="text-zinc-400 hover:text-emerald-500 mr-3">Edit</button><button onclick="deleteProduct(${Number(p.id)})" class="text-zinc-400 hover:text-red-500">Hapus</button></td>
                 </tr>
             `;
@@ -230,7 +235,7 @@
                     <td class="p-5">${o.proof ? `<img src="${o.proof}" alt="Bukti pembayaran" class="w-12 h-12 rounded cursor-pointer object-cover" onclick="window.open(this.src)">` : `<span class="text-xs font-bold text-zinc-500">Belum upload</span>`}</td>
                     <td class="p-5 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${getOrderStatusClass(o.proof ? o.status : "pending_payment")}">${getOrderStatusLabel(o.proof ? o.status : "pending_payment")}</span></td>
                     <td class="p-5 text-right">
-                        ${o.status === "pending_verification" && o.proof ? `<button onclick="verifyOrder(${index})" class="text-emerald-500 font-bold hover:underline">Verifikasi</button>` : "-"}
+                        ${o.status === "pending_verification" && o.proof ? `<button onclick="verifyOrder(${index}, this)" class="text-emerald-500 font-bold hover:underline disabled:cursor-not-allowed disabled:text-zinc-500">Verifikasi</button>` : "-"}
                     </td>
                 </tr>
             `,
@@ -238,11 +243,65 @@
           .join("");
       }
 
-      function verifyOrder(index) {
-        let orders = loadOrders();
-        orders[index].status = "success";
-        localStorage.setItem("thrift_orders", JSON.stringify(orders));
-        renderOrders();
+      function getOrderProductIds(order) {
+        return [
+          ...new Set(
+            (order.items || [])
+              .map((item) => Number(item.id))
+              .filter((id) => Number.isFinite(id)),
+          ),
+        ];
+      }
+
+      async function markOrderProductsSoldOut(order) {
+        const productIds = getOrderProductIds(order);
+
+        if (productIds.length === 0) {
+          throw new Error("Produk pada order tidak ditemukan.");
+        }
+
+        await Promise.all(
+          productIds.map((id) =>
+            requestJson(`/api/products/${encodeURIComponent(id)}/status`, {
+              method: "PUT",
+              body: JSON.stringify({ status: "sold_out" }),
+            }),
+          ),
+        );
+      }
+
+      async function verifyOrder(index, button) {
+        const orders = loadOrders();
+        const order = orders[index];
+
+        if (!order) {
+          alert("Order tidak ditemukan.");
+          return;
+        }
+
+        if (button) {
+          button.disabled = true;
+          button.textContent = "Memverifikasi...";
+        }
+
+        try {
+          await markOrderProductsSoldOut(order);
+
+          orders[index].status = "success";
+          orders[index].verifiedAt = new Date().toLocaleString("id-ID");
+          localStorage.setItem("thrift_orders", JSON.stringify(orders));
+
+          renderOrders();
+          await renderTable();
+          alert("Pembayaran berhasil diverifikasi. Produk sudah ditandai sold out.");
+        } catch (error) {
+          alert(error.message);
+
+          if (button) {
+            button.disabled = false;
+            button.textContent = "Verifikasi";
+          }
+        }
       }
 
       // --- FUNGSI MODAL & FORM (FITUR LAMA) ---

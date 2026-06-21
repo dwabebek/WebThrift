@@ -92,6 +92,10 @@ function isValidProduct(product) {
   return Boolean(product.name && product.category && product.size && product.condition);
 }
 
+function normalizeProductStatus(status) {
+  return String(status || "").trim().toLowerCase();
+}
+
 function toPublicUser(user, options = {}) {
   const publicUser = {
     username: user.username,
@@ -267,7 +271,32 @@ app.put("/api/products/:id", (req, res) => {
   });
 });
 
-// 10. Hapus produk
+// 10. Update status produk
+app.put("/api/products/:id/status", (req, res) => {
+  const products = loadProducts();
+  const productId = Number(req.params.id);
+  const productIndex = products.findIndex((item) => Number(item.id) === productId);
+  const nextStatus = normalizeProductStatus(req.body.status);
+
+  if (productIndex === -1) {
+    return res.status(404).json({ success: false, message: "Produk tidak ditemukan." });
+  }
+
+  if (!["available", "sold_out"].includes(nextStatus)) {
+    return res.status(400).json({ success: false, message: "Status produk tidak valid." });
+  }
+
+  products[productIndex].status = nextStatus;
+  saveProducts(products);
+
+  res.json({
+    success: true,
+    message: "Status produk berhasil diperbarui.",
+    product: products[productIndex],
+  });
+});
+
+// 11. Hapus produk
 app.delete("/api/products/:id", (req, res) => {
   const products = loadProducts();
   const productId = Number(req.params.id);
