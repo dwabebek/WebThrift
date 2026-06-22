@@ -38,3 +38,17 @@ Kombinasi teknologi yang digunakan untuk membangun platform ini:
 * **Halaman Dasbor Admin (`admin.html`)** — Halaman ini merupakan panel kontrol internal yang terisolasi dan hanya bisa diakses oleh pengelola atau admin toko untuk manajemen operasional *back-office*. Melalui halaman ini, admin memiliki kendali penuh untuk memantau seluruh aktivitas transaksi yang masuk, mengelola data pengguna, serta melakukan pembaruan stok seperti menambah, mengubah, atau menghapus produk thrift yang tayang di katalog utama.
 
 ---
+
+## Deploy ke Railway
+
+1. Deploy dari repository yang berisi file `package.json`, `app.js`, folder `public`, dan folder `database` secara langsung.
+2. Jika repository GitHub masih memakai folder induk, set **Root Directory** service Railway ke `/WebThrift`.
+3. Railway akan menjalankan `npm start` dari `railway.json`.
+4. Aplikasi memakai `process.env.PORT` dan bind ke `0.0.0.0`, sesuai kebutuhan Railway.
+5. Untuk data yang tetap tersimpan setelah redeploy, buat Railway Volume lalu set variable:
+
+```env
+DATA_DIR=/data
+```
+
+Tanpa volume, file JSON tetap bisa dibuat saat runtime, tetapi data bisa reset ketika service di-redeploy.

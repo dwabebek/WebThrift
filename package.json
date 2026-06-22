@@ -1,9 +1,14 @@
 {
   "name": "thrift-lab",
   "version": "1.0.0",
+  "private": true,
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "dev": "node app.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "express": "^4.22.2"

@@ -143,7 +143,7 @@
 
     <script>
       let profilePhotoData = "";
-      const apiOrigin = window.location.origin === "http://localhost:3000" ? "" : "http://localhost:3000";
+      const apiOrigin = "";
 
       const alertBox = document.getElementById("alertMessage");
       const photoInput = document.getElementById("profilePhoto");
@@ -224,7 +224,7 @@
             throw new Error("Data profil terlalu besar. Pilih foto profil yang ukurannya lebih kecil.");
           }
 
-          throw new Error("Request profil tidak menerima JSON. Pastikan halaman dibuka dari http://localhost:3000/profile.html dan server Node sudah direstart.");
+          throw new Error("Request profil tidak menerima JSON. Pastikan halaman dibuka lewat server aplikasi, bukan langsung dari file explorer.");
         }
 
         try {

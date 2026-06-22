@@ -167,8 +167,9 @@
           .replace(/'/g, "&#039;");
       }
 
-      function loadOrders() {
-        return JSON.parse(localStorage.getItem("thrift_orders")) || [];
+      async function loadOrders() {
+        const data = await requestJson("/api/orders");
+        return Array.isArray(data.orders) ? data.orders : [];
       }
       function getOrderStatusClass(status) {
         if (status === "success") return "bg-emerald-500/10 text-emerald-500";
@@ -224,58 +225,51 @@
       }
 
       // --- RENDER ORDER (FITUR BARU) ---
-      function renderOrders() {
-        const orders = loadOrders();
-        document.getElementById("orderTableBody").innerHTML = orders
-          .map(
-            (o, index) => `
+      async function renderOrders() {
+        const tableBody = document.getElementById("orderTableBody");
+        tableBody.innerHTML = `<tr><td colspan="5" class="p-5 text-center text-zinc-500">Memuat order...</td></tr>`;
+
+        try {
+          const orders = await loadOrders();
+
+          if (orders.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="5" class="p-5 text-center text-zinc-500">Belum ada order masuk.</td></tr>`;
+            return;
+          }
+
+          tableBody.innerHTML = orders
+            .map((o) => {
+              const orderId = String(o.id || "");
+              const totalLabel = o.total_label || `Rp ${Number(o.total || 0).toLocaleString("id-ID")}`;
+              const proofMarkup = o.proof
+                ? `<img src="${escapeHtml(o.proof)}" alt="Bukti pembayaran" class="w-12 h-12 rounded cursor-pointer object-cover" onclick="window.open(this.src)">`
+                : `<span class="text-xs font-bold text-zinc-500">Belum upload</span>`;
+              const actionMarkup =
+                o.status === "pending_verification" && o.proof
+                  ? `<button onclick="verifyOrder('${escapeHtml(orderId)}', this)" class="text-emerald-500 font-bold hover:underline disabled:cursor-not-allowed disabled:text-zinc-500">Verifikasi</button>`
+                  : "-";
+
+              return `
                 <tr class="hover:bg-zinc-950/50">
-                    <td class="p-5">${o.date}</td>
-                    <td class="p-5 font-bold">${o.total}</td>
-                    <td class="p-5">${o.proof ? `<img src="${o.proof}" alt="Bukti pembayaran" class="w-12 h-12 rounded cursor-pointer object-cover" onclick="window.open(this.src)">` : `<span class="text-xs font-bold text-zinc-500">Belum upload</span>`}</td>
-                    <td class="p-5 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${getOrderStatusClass(o.proof ? o.status : "pending_payment")}">${getOrderStatusLabel(o.proof ? o.status : "pending_payment")}</span></td>
+                    <td class="p-5"><div>${escapeHtml(o.date || "-")}</div><div class="mt-1 text-xs text-zinc-500">${escapeHtml(o.customer?.name || "-")}</div></td>
+                    <td class="p-5 font-bold">${escapeHtml(totalLabel)}</td>
+                    <td class="p-5">${proofMarkup}</td>
+                    <td class="p-5 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${getOrderStatusClass(o.proof ? o.status : "pending_payment")}">${escapeHtml(getOrderStatusLabel(o.proof ? o.status : "pending_payment"))}</span></td>
                     <td class="p-5 text-right">
-                        ${o.status === "pending_verification" && o.proof ? `<button onclick="verifyOrder(${index}, this)" class="text-emerald-500 font-bold hover:underline disabled:cursor-not-allowed disabled:text-zinc-500">Verifikasi</button>` : "-"}
+                        ${actionMarkup}
                     </td>
                 </tr>
-            `,
-          )
-          .join("");
-      }
-
-      function getOrderProductIds(order) {
-        return [
-          ...new Set(
-            (order.items || [])
-              .map((item) => Number(item.id))
-              .filter((id) => Number.isFinite(id)),
-          ),
-        ];
-      }
-
-      async function markOrderProductsSoldOut(order) {
-        const productIds = getOrderProductIds(order);
-
-        if (productIds.length === 0) {
-          throw new Error("Produk pada order tidak ditemukan.");
+            `;
+            })
+            .join("");
+        } catch (error) {
+          tableBody.innerHTML = `<tr><td colspan="5" class="p-5 text-center text-red-500">${escapeHtml(error.message)}</td></tr>`;
         }
-
-        await Promise.all(
-          productIds.map((id) =>
-            requestJson(`/api/products/${encodeURIComponent(id)}/status`, {
-              method: "PUT",
-              body: JSON.stringify({ status: "sold_out" }),
-            }),
-          ),
-        );
       }
 
-      async function verifyOrder(index, button) {
-        const orders = loadOrders();
-        const order = orders[index];
-
-        if (!order) {
-          alert("Order tidak ditemukan.");
+      async function verifyOrder(orderId, button) {
+        if (!orderId) {
+          alert("ID order tidak ditemukan.");
           return;
         }
 
@@ -285,15 +279,13 @@
         }
 
         try {
-          await markOrderProductsSoldOut(order);
+          const data = await requestJson(`/api/orders/${encodeURIComponent(orderId)}/verify`, {
+            method: "PUT",
+          });
 
-          orders[index].status = "success";
-          orders[index].verifiedAt = new Date().toLocaleString("id-ID");
-          localStorage.setItem("thrift_orders", JSON.stringify(orders));
-
-          renderOrders();
+          await renderOrders();
           await renderTable();
-          alert("Pembayaran berhasil diverifikasi. Produk sudah ditandai sold out.");
+          alert(data.message || "Pembayaran berhasil diverifikasi. Produk sudah ditandai sold out.");
         } catch (error) {
           alert(error.message);
 

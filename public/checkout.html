@@ -77,10 +77,33 @@
 
     <script>
       const cart = JSON.parse(localStorage.getItem("thrift_cart")) || [];
+      const currentUser = JSON.parse(localStorage.getItem("thrift_current_user")) || null;
 
       if (cart.length === 0) {
         alert("Keranjang kosong!");
         window.location.href = "/";
+      }
+
+      function showAlert(message, type = "error") {
+        const alertBox = document.getElementById("alertMessage");
+        const isSuccess = type === "success";
+
+        alertBox.textContent = message;
+        alertBox.className = `mb-6 rounded-2xl border px-5 py-4 text-sm font-bold ${isSuccess ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-red-500/30 bg-red-500/10 text-red-400"}`;
+      }
+
+      function syncLocalOrder(order) {
+        const orderHistory = JSON.parse(localStorage.getItem("thrift_orders")) || [];
+        const existingIndex = orderHistory.findIndex((item) => item.id === order.id);
+
+        if (existingIndex === -1) {
+          orderHistory.push(order);
+        } else {
+          orderHistory[existingIndex] = order;
+        }
+
+        localStorage.setItem("thrift_orders", JSON.stringify(orderHistory));
+        localStorage.setItem("thrift_current_order_id", order.id);
       }
 
       function renderCheckoutSummary() {
@@ -98,30 +121,56 @@
         document.getElementById("checkoutTotal").textContent = `Rp ${finalTotal.toLocaleString("id-ID")}`;
       }
 
-      function processOrder() {
+      function fillCustomerData() {
+        if (!currentUser) return;
+
+        document.getElementById("custName").value = currentUser.full_name || "";
+        document.getElementById("custPhone").value = currentUser.phone || "";
+        document.getElementById("custAddress").value = currentUser.address || "";
+      }
+
+      async function processOrder() {
         const form = document.getElementById("checkoutForm");
+        const payBtn = document.getElementById("payBtn");
+
         if (!form.checkValidity()) {
           form.reportValidity();
           return;
         }
 
-        // Simpan data order ke localStorage dengan status awal
-        const orderHistory = JSON.parse(localStorage.getItem("thrift_orders")) || [];
-        const newOrder = {
+        const payload = {
           items: cart,
-          total: document.getElementById("checkoutTotal").textContent,
-          date: new Date().toLocaleDateString(),
-          status: "pending_payment", // Status menunggu upload bukti
-          paymentMethod: document.getElementById("paymentMethod").value, // Simpan metode terpilih
+          customer_name: document.getElementById("custName").value,
+          phone: document.getElementById("custPhone").value,
+          address: document.getElementById("custAddress").value,
+          payment_method: document.getElementById("paymentMethod").value,
         };
 
-        orderHistory.push(newOrder);
-        localStorage.setItem("thrift_orders", JSON.stringify(orderHistory));
+        payBtn.disabled = true;
+        payBtn.textContent = "MEMBUAT ORDER...";
 
-        // Arahkan ke halaman pembayaran
-        window.location.href = "/payment.html";
+        try {
+          const response = await fetch("/api/orders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await response.json();
+
+          if (!response.ok || !data.success) {
+            throw new Error(data.message || "Order gagal dibuat.");
+          }
+
+          syncLocalOrder(data.order);
+          window.location.href = `/payment.html?order=${encodeURIComponent(data.order.id)}`;
+        } catch (error) {
+          showAlert(error.message || "Order gagal dibuat.");
+          payBtn.disabled = false;
+          payBtn.textContent = "BAYAR SEKARANG";
+        }
       }
 
+      fillCustomerData();
       renderCheckoutSummary();
     </script>
   </body>
