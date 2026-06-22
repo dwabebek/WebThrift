@@ -31,6 +31,17 @@ Kombinasi teknologi yang digunakan untuk membangun platform ini:
 - **Frontend Architecture:** HTML5, CSS3, & Vanilla JavaScript (ES6+) ✨
 - **Data Interchange:** JSON (via `express.json()` & `urlencoded`) 📦
 
+## 👨‍💻 Pembagian Kontribusi Per Anggota
+
+Berikut rincian fitur dan bagian kode yang dikerjakan oleh masing-masing anggota kelompok.
+
+| # | Anggota | NIM | Fitur yang Dikerjakan | Halaman |
+|---|---------|-----|-----------------------|---------|
+| 1 | Brillian Naufal Abid | 202451080 | Index & Profile | `index.html` , `profile.html` |
+| 2 | Sandi Wahyu Mukti | 202451094 | Login & Register | `login.html` , `register.html` |
+| 3 | Dafa Nabil Nugroho | 202451095 | Cart & Admin | `cart.html` , `admin.html` |
+| 4 | Muhammad Yusfiandra Hidayat | 202451096 | Checkout & Payment | `checkout.html` , `payment` |
+
 ## 📂 Narasi Penjelasan Halaman
 
 - **Halaman Utama (`index.html`)** — Pada halaman pertama atau _landing page_ ini, pengguna akan langsung disambut oleh katalog produk thrift terbaru, berbagai promo menarik, serta spanduk utama. Halaman ini berfungsi sebagai etalase digital sekaligus navigasi utama yang mengarahkan pengguna untuk menjelajahi seluruh fitur dan produk yang tersedia di platform kami.
