@@ -3,6 +3,17 @@ const fs = require("fs");
 const path = require("path");
 const app = express();
 
+// Environment variables
+const isDev = process.env.NODE_ENV !== "production";
+
+// Middleware untuk request logging di production
+if (!isDev) {
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    next();
+  });
+}
+
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
@@ -19,6 +30,7 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 
+// Error handling middleware untuk JSON parse errors
 app.use((err, req, res, next) => {
   if (err.type === "entity.too.large") {
     return res.status(413).json({
@@ -27,7 +39,18 @@ app.use((err, req, res, next) => {
     });
   }
 
-  return next(err);
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+    return res.status(400).json({
+      success: false,
+      message: "Format JSON tidak valid.",
+    });
+  }
+
+  console.error("[ERROR]", err);
+  return res.status(500).json({
+    success: false,
+    message: isDev ? err.message : "Terjadi kesalahan pada server.",
+  });
 });
 
 // Path absolut ke folder public
@@ -136,7 +159,9 @@ function normalizeProduct(input, fallback = {}) {
   return {
     id: Number(input.id || fallback.id || Date.now()),
     name: String(input.name ?? fallback.name ?? "").trim(),
-    category: String(input.category ?? fallback.category ?? "baju").trim().toLowerCase(),
+    category: String(input.category ?? fallback.category ?? "baju")
+      .trim()
+      .toLowerCase(),
     size: String(input.size ?? fallback.size ?? "").trim(),
     condition: String(input.condition ?? fallback.condition ?? "").trim(),
     price: Number.isFinite(price) && price >= 0 ? price : 0,
@@ -150,7 +175,9 @@ function isValidProduct(product) {
 }
 
 function normalizeProductStatus(status) {
-  return String(status || "").trim().toLowerCase();
+  return String(status || "")
+    .trim()
+    .toLowerCase();
 }
 
 function formatCurrency(value) {
@@ -162,7 +189,9 @@ function createOrderId() {
 }
 
 function normalizePaymentMethod(method) {
-  const normalizedMethod = String(method || "").trim().toUpperCase();
+  const normalizedMethod = String(method || "")
+    .trim()
+    .toUpperCase();
   return validPaymentMethods.includes(normalizedMethod) ? normalizedMethod : "BCA";
 }
 
@@ -179,13 +208,7 @@ function normalizeOrderItem(product) {
 }
 
 function getOrderProductIds(order) {
-  return [
-    ...new Set(
-      (order.items || [])
-        .map((item) => Number(item.id))
-        .filter((id) => Number.isFinite(id)),
-    ),
-  ];
+  return [...new Set((order.items || []).map((item) => Number(item.id)).filter((id) => Number.isFinite(id)))];
 }
 
 function findOrderIndexById(orders, orderId) {
@@ -581,8 +604,38 @@ app.put("/api/orders/:id/verify", (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || "0.0.0.0";
-app.listen(PORT, HOST, () => {
-  console.log(`Server jalan di: http://${HOST}:${PORT}`);
-  console.log(`Mencari file di: ${publicPath}`);
-  console.log(`Menyimpan data di: ${dataPath}`);
+
+const server = app.listen(PORT, HOST, () => {
+  console.log(`[${new Date().toISOString()}] 🚀 Server jalan di: http://${HOST}:${PORT}`);
+  console.log(`[${new Date().toISOString()}] 📁 Mencari file di: ${publicPath}`);
+  console.log(`[${new Date().toISOString()}] 💾 Menyimpan data di: ${dataPath}`);
+  console.log(`[${new Date().toISOString()}] 🔧 Environment: ${isDev ? "development" : "production"}`);
+});
+
+// Graceful shutdown
+process.on("SIGTERM", () => {
+  console.log("[SIGTERM] Menutup server dengan graceful...");
+  server.close(() => {
+    console.log("[SIGTERM] Server ditutup");
+    process.exit(0);
+  });
+});
+
+process.on("SIGINT", () => {
+  console.log("[SIGINT] Menutup server dengan graceful...");
+  server.close(() => {
+    console.log("[SIGINT] Server ditutup");
+    process.exit(0);
+  });
+});
+
+// Handle uncaught exceptions
+process.on("uncaughtException", (error) => {
+  console.error("[UNCAUGHT EXCEPTION]", error);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("[UNHANDLED REJECTION]", reason);
+  process.exit(1);
 });

@@ -1,16 +1,32 @@
 {
   "name": "thrift-lab",
   "version": "1.0.0",
+  "description": "Platform e-commerce thrift store untuk membeli dan menjual barang vintage berkualitas",
   "private": true,
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "node app.js"
+    "dev": "NODE_ENV=development node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [
+    "thrift",
+    "ecommerce",
+    "vintage",
+    "secondhand"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=18",
+    "npm": ">=8"
   },
   "dependencies": {
     "express": "^4.22.2"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/thrift-lab"
   }
 }
